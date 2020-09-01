@@ -83,26 +83,26 @@ class JackTokenizer:
         for token in tokens:
             if len(token) == 1:
                 if token in self.symbols:
-                    current_token = JackToken(token, "SYMBOL")
+                    current_token = JackToken(token, "symbol")
                     self.tokens.append(current_token)
                 elif token in self.integers:
-                    current_token = JackToken(token, "INT_CONSTANT")
+                    current_token = JackToken(token, "int_constant")
                     self.tokens.append(current_token)
                 else:
-                    current_token = JackToken(token, "IDENTIFIER")
+                    current_token = JackToken(token, "identifier")
                     self.tokens.append(current_token)
             else:
                 if token in self.keywords:
-                    current_token = JackToken(token, "KEYWORD")
+                    current_token = JackToken(token, "keyword")
                     self.tokens.append(current_token)
                 elif token[0] == "\"":
-                    current_token = JackToken(token, "STRING_CONST")
+                    current_token = JackToken(token, "string_const")
                     self.tokens.append(current_token)
                 elif token[0] in self.integers:
-                    current_token = JackToken(token, "INT_CONST")
+                    current_token = JackToken(token, "int_const")
                     self.tokens.append(current_token)
                 else:
-                    current_token = JackToken(token, "IDENTIFIER")
+                    current_token = JackToken(token, "identifier")
                     self.tokens.append(current_token)
         return self.tokens
 
