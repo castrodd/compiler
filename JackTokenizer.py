@@ -31,6 +31,14 @@ class JackTokenizer:
         for token in self.tokens:
             tokenType = token.get_token_type()
             token = token.get_token()
+            if tokenType == "stringConstant":
+                token = token[1:-1] # Strip quotation marks
+            if token == "<":
+                token = "&lt;"
+            if token == ">":
+                token = "&gt;"
+            if token == "&":
+                token = "&amp;" 
             outputFile.write("\t<{tType}> {t} </{tType}>\n".format(tType=tokenType, t=token))
         outputFile.write("</tokens>")
 
@@ -86,7 +94,7 @@ class JackTokenizer:
                     current_token = JackToken(token, "symbol")
                     self.tokens.append(current_token)
                 elif token in self.integers:
-                    current_token = JackToken(token, "int_constant")
+                    current_token = JackToken(token, "integerConstant")
                     self.tokens.append(current_token)
                 else:
                     current_token = JackToken(token, "identifier")
@@ -96,10 +104,10 @@ class JackTokenizer:
                     current_token = JackToken(token, "keyword")
                     self.tokens.append(current_token)
                 elif token[0] == "\"":
-                    current_token = JackToken(token, "string_const")
+                    current_token = JackToken(token, "stringConstant")
                     self.tokens.append(current_token)
                 elif token[0] in self.integers:
-                    current_token = JackToken(token, "int_const")
+                    current_token = JackToken(token, "integerConstant")
                     self.tokens.append(current_token)
                 else:
                     current_token = JackToken(token, "identifier")
