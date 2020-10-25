@@ -1,6 +1,13 @@
-import sys
 import os
+import sys
+from CompilationEngine import CompilationEngine
 from JackTokenizer import JackTokenizer
+
+def create_output_file(filename):
+        currentFileName = filename.partition(".")[0]
+        outputFileName = currentFileName + ".xml"
+        outputFile = open(outputFileName, 'a+')
+        return outputFile
 
 def is_jack_file(fileName):
     return os.path.basename(fileName).partition(".")[2] == "jack"
@@ -22,10 +29,9 @@ def get_list_of_files():
 def main():
     file_or_directory = get_list_of_files()
     for file in file_or_directory:
-       tokenized_file = JackTokenizer(file)
-    #    output_file = create_output_file(file)
-    #    compiled_file = CompilationEngine(tokenized_file, output_file)
-    #    write_file(compiled_file)
+       tokenizer = JackTokenizer(file)
+       output_file = create_output_file(file)
+       CompilationEngine(tokenizer, output_file)
     print("Compiler finished.")
 
 if __name__ == "__main__":

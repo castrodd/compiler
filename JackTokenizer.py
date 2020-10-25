@@ -11,7 +11,7 @@ class JackTokenizer:
 
         self.tokens = list()
         self.tokenize_stream(filename)
-        self.output_tokens(filename)
+        #self.output_tokens(filename)
         self.current_index = 0
 
     def tokenize_stream(self, file):
@@ -19,28 +19,27 @@ class JackTokenizer:
            all_lines = list(f)
            clean_lines = self.remove_single_line_comments(all_lines)
            parsed_lines = self.parse_lines(clean_lines)
-           parsed_tokens = self.parse_tokens(parsed_lines)
-        return parsed_tokens
+           self.parse_tokens(parsed_lines)
     
-    def output_tokens(self, filename):
-        currentFileName = filename.partition(".")[0]
-        outputFileName = currentFileName + "T.xml"
-        outputFile = open(outputFileName, 'a+')
+    # def output_tokens(self, filename):
+    #     currentFileName = filename.partition(".")[0]
+    #     outputFileName = currentFileName + "T.xml"
+    #     outputFile = open(outputFileName, 'a+')
 
-        outputFile.write("<tokens>\n")
-        for token in self.tokens:
-            tokenType = token.get_token_type()
-            token = token.get_token()
-            if tokenType == "stringConstant":
-                token = token[1:-1] # Strip quotation marks
-            if token == "<":
-                token = "&lt;"
-            if token == ">":
-                token = "&gt;"
-            if token == "&":
-                token = "&amp;" 
-            outputFile.write("\t<{tType}> {t} </{tType}>\n".format(tType=tokenType, t=token))
-        outputFile.write("</tokens>")
+    #     outputFile.write("<tokens>\n")
+    #     for token in self.tokens:
+    #         tokenType = token.get_token_type()
+    #         token = token.get_token()
+    #         if tokenType == "stringConstant":
+    #             token = token[1:-1] # Strip quotation marks
+    #         if token == "<":
+    #             token = "&lt;"
+    #         if token == ">":
+    #             token = "&gt;"
+    #         if token == "&":
+    #             token = "&amp;" 
+    #         outputFile.write("\t<{tType}> {t} </{tType}>\n".format(tType=tokenType, t=token))
+    #     outputFile.write("</tokens>")
 
 
     def remove_single_line_comments(self, f):
@@ -123,12 +122,12 @@ class JackTokenizer:
     def advance(self):
         self.current_index += 1
 
-    def tokenType(self):
+    def token_type(self):
         current_token = self.tokens[self.current_index]
-        return current_token.type()
+        return current_token.get_type()
 
     def token(self):
         current_token = self.tokens[self.current_index]
-        return current_token.token()
+        return current_token.get_token()
 
     
