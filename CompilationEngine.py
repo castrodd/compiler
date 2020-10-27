@@ -22,7 +22,7 @@ class CompilationEngine:
         if current_token == "&":
             current_token = "&amp;"
         
-        self.output.write("\t<{tType}>\n\t{t}\n</{tType}>\n".format(tType=current_token_type, t=current_token))
+        self.output.write("\t<{tType}> {t} </{tType}>\n".format(tType=current_token_type, t=current_token))
         self.tokenizer.advance()
     
     def output_opening_tag(self, tag_name):

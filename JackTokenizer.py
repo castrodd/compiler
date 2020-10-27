@@ -124,7 +124,7 @@ class JackTokenizer:
 
     def token_type(self):
         current_token = self.tokens[self.current_index]
-        return current_token.get_type()
+        return current_token.get_token_type()
 
     def token(self):
         current_token = self.tokens[self.current_index]
