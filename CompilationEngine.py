@@ -43,17 +43,89 @@ class CompilationEngine:
 
     def compile_class_var_dec(self):
         self.output_opening_tag("classVarDec")
+        if self.tokenizer.token() == "static" or self.tokenizer.token() == "field":
+            self.output_token()
+        else:
+            return Exception("Incorrect syntax for class variable declaration.")
         
+        self.compile_type()
+        self.output_token()
+        while self.tokenizer.token() == ",":
+            self.verify_and_output_token(",")
+            self.output_token()
+
+        self.verify_and_output_token(";")
         self.output_closing_tag("classVarDec")
 
+    def compile_type(self):
+        current_token = self.tokenizer.token()
+        if current_token == "int" or current_token == "char" or current_token == "boolean":
+            self.output_token()
+            self.tokenizer.advance()
+        elif self.tokenizer.token_type() == "identifier":
+            self.output_token()
+            self.tokenizer.advance()
+        else:
+            return Exception("Incorrect syntax for type.")
+
+    def is_type(self):
+        current_token = self.tokenizer.token()
+        if current_token == "int" or current_token == "char" or current_token == "boolean":
+            return True
+        elif self.tokenizer.token_type() == "identifier":
+            return True
+        else:
+            return False
+
     def compile_subroutine(self):
-        pass
+        self.output_opening_tag("subroutineDec")
+        
+        current_token = self.tokenizer.token()
+        if current_token == "constructor" or current_token == "function" or current_token == "method":
+            self.output_token()
+        else:
+            return Exception("Incorrect syntax for subroutine declaration.")
+
+        if self.tokenizer.token() == "void":
+            self.output_token()
+        else:
+            self.compile_type()
+
+        self.output_token()
+        self.verify_and_output_token("(")
+        self.compile_parameter_list()
+        self.verify_and_output_token(")")
+
+        self.output_opening_tag("subroutineBody")
+        self.verify_and_output_token("{")
+        while self.tokenizer.token == "var":
+            self.compile_var_dec()
+        self.compile_statements()
+        self.verify_and_output_token("}")
+        self.output_closing_tag("subroutineBody")
+        self.output_closing_tag("subroutineDec")
 
     def compile_parameter_list(self):
-        pass
+        self.output_opening_tag("parameterList")
+        while self.is_type():
+            self.compile_type()
+            self.output_token()
+            while self.tokenizer.token() == ",":
+                self.verify_and_output_token(",")
+                self.compile_type()
+                self.output_token()
+        self.output_closing_tag("parameterList")
 
     def compile_var_dec(self):
-        pass
+        self.output_opening_tag("varDec")
+        self.verify_and_output_token("var")
+        self.compile_type()
+        self.output_token()
+        while self.tokenizer.token() == ",":
+            self.verify_and_output_token(",")
+            self.output_token()
+        self.verify_and_output_token(";")
+        self.output_closing_tag("varDec")
 
     def compile_statements(self):
         self.output_opening_tag("statements")
