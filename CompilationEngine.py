@@ -36,8 +36,10 @@ class CompilationEngine:
         self.verify_and_output_token("class")
         self.output_token()
         self.verify_and_output_token("{")
-        self.compile_class_var_dec()
-        self.compile_subroutine()
+        while self.tokenizer.token() in ["static", "field"]:
+            self.compile_class_var_dec()
+        while self.tokenizer.token() in ["constructor", "function", "method"]:
+            self.compile_subroutine()
         self.verify_and_output_token("}")
         self.output_closing_tag("class")
 
@@ -61,10 +63,8 @@ class CompilationEngine:
         current_token = self.tokenizer.token()
         if current_token == "int" or current_token == "char" or current_token == "boolean":
             self.output_token()
-            self.tokenizer.advance()
         elif self.tokenizer.token_type() == "identifier":
             self.output_token()
-            self.tokenizer.advance()
         else:
             return Exception("Incorrect syntax for type.")
 
@@ -98,7 +98,7 @@ class CompilationEngine:
 
         self.output_opening_tag("subroutineBody")
         self.verify_and_output_token("{")
-        while self.tokenizer.token == "var":
+        while self.tokenizer.token() == "var":
             self.compile_var_dec()
         self.compile_statements()
         self.verify_and_output_token("}")
@@ -129,7 +129,7 @@ class CompilationEngine:
 
     def compile_statements(self):
         self.output_opening_tag("statements")
-        while self.tokenizer.hasMoreTokens():
+        while self.tokenizer.token() in ["let", "if", "while", "do", "return"]:
             current_token = self.tokenizer.token()
             if current_token == "let":
                 self.compile_let()
@@ -161,6 +161,7 @@ class CompilationEngine:
             self.verify_and_output_token(")")
         else:
             return Exception("Incorrect syntax for Do Statement.")
+        self.verify_and_output_token(";")
         self.output_closing_tag("doStatement")
 
     def compile_let(self):
@@ -217,10 +218,15 @@ class CompilationEngine:
         self.output_closing_tag("ifStatement")
 
     def compile_expression(self):
-        pass
+        self.output_opening_tag("expression")
+        self.compile_term()
+        self.output_closing_tag("expression")
 
     def compile_term(self):
-        pass
+        self.output_opening_tag("term")
+        self.output_token()
+        self.output_closing_tag("term")
 
     def compile_expression_list(self):
-        pass
+        self.output_opening_tag("expressionList")
+        self.output_closing_tag("expressionList")
