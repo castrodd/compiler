@@ -20,6 +20,7 @@ class JackTokenizer:
            clean_lines = self.remove_single_line_comments(all_lines)
            parsed_lines = self.parse_lines(clean_lines)
            self.parse_tokens(parsed_lines)
+        #    print(list(map(lambda x: x.get_token(), self.tokens)))
     
     # def output_tokens(self, filename):
     #     currentFileName = filename.partition(".")[0]

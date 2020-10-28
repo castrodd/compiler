@@ -6,6 +6,7 @@ from JackTokenizer import JackTokenizer
 def create_output_file(filename):
         currentFileName = filename.partition(".")[0]
         outputFileName = currentFileName + ".xml"
+        print("OUTPUT: ", outputFileName)
         outputFile = open(outputFileName, 'a+')
         return outputFile
 
@@ -22,16 +23,18 @@ def get_list_of_files():
     if is_directory:
         list_of_all_files = os.listdir(input_name)
         jack_files = filter(is_jack_file, list_of_all_files)
-        return jack_files
+        jack_files_full_path = map(lambda f: input_name + "/" + f, jack_files)
+        return jack_files_full_path
     else:
         return [input_name]
 
 def main():
     file_or_directory = get_list_of_files()
     for file in file_or_directory:
-       tokenizer = JackTokenizer(file)
-       output_file = create_output_file(file)
-       CompilationEngine(tokenizer, output_file)
+        print("INPUT: ", file)
+        output_file = create_output_file(file)
+        tokenizer = JackTokenizer(file)
+        CompilationEngine(tokenizer, output_file)
     print("Compiler finished.")
 
 if __name__ == "__main__":

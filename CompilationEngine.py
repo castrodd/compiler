@@ -2,7 +2,8 @@ class CompilationEngine:
     def __init__(self, input, output):
         self.tokenizer = input
         self.output = output
-        self.compile_class()
+        while self.tokenizer.hasMoreTokens():
+            self.compile_class()
 
     def verify_and_output_token(self, string):
         if self.tokenizer.token() != string:
@@ -187,7 +188,7 @@ class CompilationEngine:
         self.verify_and_output_token("{")
         self.compile_statements()
         self.verify_and_output_token("}")
-        self.output_closing_tag("whileStatment")
+        self.output_closing_tag("whileStatement")
 
     def compile_return(self):
         self.output_opening_tag("returnStatement")
@@ -226,7 +227,28 @@ class CompilationEngine:
         self.output_opening_tag("term")
         self.output_token()
         self.output_closing_tag("term")
+        while self.is_op():
+            self.output_token()
+            self.compile_term()
+
+    def is_op(self):
+        ops = ["+", "-", "*", "/", "&", "|", "<", ">", "="]
+        if self.tokenizer.token() in ops:
+            return True
+        return False
 
     def compile_expression_list(self):
         self.output_opening_tag("expressionList")
+        if self.is_expression():
+            self.compile_expression()
+            while self.tokenizer.token() == ",":
+                self.output_token()
+                self.compile_expression()
         self.output_closing_tag("expressionList")
+    
+    def is_expression(self):
+        expression_types = ["integerConstant", "stringConstant", "identifier", "keyword", "(", "~", "-"]
+        if self.tokenizer.token_type() in expression_types:
+            print(self.tokenizer.token_type(), self.tokenizer.token())
+            return True
+        return False
