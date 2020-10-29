@@ -149,19 +149,13 @@ class CompilationEngine:
     def compile_do(self):
         self.output_opening_tag("doStatement")
         self.verify_and_output_token("do")
-        self.output_token()
-        if self.tokenizer.token() == "(":
-            self.verify_and_output_token("(")
-            self.compile_expression_list()
-            self.verify_and_output_token(")")
-        elif self.tokenizer.token() == ".":
-            self.verify_and_output_token(".")
-            self.output_token()
-            self.verify_and_output_token("(")
-            self.compile_expression_list()
-            self.verify_and_output_token(")")
-        else:
-            return Exception("Incorrect syntax for Do Statement.")
+        
+        self.tokenizer.advance()
+        next_token = self.tokenizer.token()
+        self.tokenizer.reverse()
+
+        self.compile_subroutine_call(next_token)
+
         self.verify_and_output_token(";")
         self.output_closing_tag("doStatement")
 
@@ -252,24 +246,30 @@ class CompilationEngine:
                 self.verify_and_output_token("[")
                 self.compile_expression()
                 self.verify_and_output_token("]")
-            elif next_token == "(":
-                self.output_token()
-                self.verify_and_output_token("(")
-                self.compile_expression_list()
-                self.verify_and_output_token(")")
-            elif next_token == ".":
-                self.output_token()
-                self.verify_and_output_token(".")
-                self.output_token()
-                self.verify_and_output_token("(")
-                self.compile_expression_list()
-                self.verify_and_output_token(")")
+            elif next_token == "(" or next_token == ".":
+                self.compile_subroutine_call(next_token)
             else:
                 self.output_token()
         else:
             return Exception("Incorrect syntax for term.")
         
         self.output_closing_tag("term")
+    
+    def compile_subroutine_call(self, token):
+        if token == "(":
+            self.output_token()
+            self.verify_and_output_token("(")
+            self.compile_expression_list()
+            self.verify_and_output_token(")")
+        elif token == ".":
+            self.output_token()
+            self.verify_and_output_token(".")
+            self.output_token()
+            self.verify_and_output_token("(")
+            self.compile_expression_list()
+            self.verify_and_output_token(")")
+        else:
+            return Exception("Incorrect syntax for subroutine call.")
 
     def is_op(self):
         ops = ["+", "-", "*", "/", "&", "|", "<", ">", "="]
@@ -287,8 +287,8 @@ class CompilationEngine:
         self.output_closing_tag("expressionList")
     
     def is_expression(self):
-        expression_types = ["integerConstant", "stringConstant", "identifier", "keyword", "(", "~", "-"]
-        if self.tokenizer.token_type() in expression_types:
-            print(self.tokenizer.token_type(), self.tokenizer.token())
+        expression_types = ["integerConstant", "stringConstant", "identifier", "keyword"]
+        symbols = ["(", "~", "-"]
+        if self.tokenizer.token_type() in expression_types or self.tokenizer.token() in symbols:
             return True
         return False
