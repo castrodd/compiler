@@ -123,6 +123,9 @@ class JackTokenizer:
     def advance(self):
         self.current_index += 1
 
+    def reverse(self):
+        self.current_index -= 1
+
     def token_type(self):
         current_token = self.tokens[self.current_index]
         return current_token.get_token_type()

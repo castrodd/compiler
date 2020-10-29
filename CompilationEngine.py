@@ -221,15 +221,55 @@ class CompilationEngine:
     def compile_expression(self):
         self.output_opening_tag("expression")
         self.compile_term()
+        while self.is_op():
+            self.output_token()
+            self.compile_term()
         self.output_closing_tag("expression")
 
     def compile_term(self):
         self.output_opening_tag("term")
-        self.output_token()
-        self.output_closing_tag("term")
-        while self.is_op():
+
+        current_token = self.tokenizer.token()
+        current_token_type = self.tokenizer.token_type()
+        simple_terms = ["integerConstant", "stringConstant"]
+        keyword_constants = ["true", "false", "null", "this"]
+        
+        if current_token_type in simple_terms or current_token in keyword_constants: 
+            self.output_token()
+        elif current_token == "(":
+            self.verify_and_output_token("(")
+            self.compile_expression()
+            self.verify_and_output_token(")")
+        elif current_token == "-" or current_token == "~":
             self.output_token()
             self.compile_term()
+        elif current_token_type == "identifier":
+            self.tokenizer.advance()
+            next_token = self.tokenizer.token()
+            self.tokenizer.reverse()
+            if next_token == "[":
+                self.output_token()
+                self.verify_and_output_token("[")
+                self.compile_expression()
+                self.verify_and_output_token("]")
+            elif next_token == "(":
+                self.output_token()
+                self.verify_and_output_token("(")
+                self.compile_expression_list()
+                self.verify_and_output_token(")")
+            elif next_token == ".":
+                self.output_token()
+                self.verify_and_output_token(".")
+                self.output_token()
+                self.verify_and_output_token("(")
+                self.compile_expression_list()
+                self.verify_and_output_token(")")
+            else:
+                self.output_token()
+        else:
+            return Exception("Incorrect syntax for term.")
+        
+        self.output_closing_tag("term")
 
     def is_op(self):
         ops = ["+", "-", "*", "/", "&", "|", "<", ">", "="]
