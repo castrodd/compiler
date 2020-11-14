@@ -3,15 +3,22 @@ from Symbol import Symbol
 class SymbolTable:
     def __init__(self):
         self.count = {
-            "STATIC": 0,
-            "FIELD": 0,
-            "ARG": 0,
-            "VAR": 0
+            "static": 0,
+            "field": 0,
+            "arg": 0,
+            "var": 0
         }
+        self.class_name = None
         self.class_scope = {}
         self.subroutine_scope = {}
+
+    def set_class_name(self, name):
+        self.class_name = name
+
+    def get_class(self):
+        return self.class_name
     
-    def startSubroutine(self):
+    def start_subroutine(self):
         self.subroutine_scope = {}
 
     def increment_and_get_index(self, kind):
@@ -21,12 +28,12 @@ class SymbolTable:
     
     def define(self, name, typing, kind):
         index = self.increment_and_get_index(kind)
-        if kind in ["STATIC", "FIELD"]:
+        if kind in ["static", "field"]:
             self.class_scope[name] = Symbol(typing, kind, index)
-        elif kind in ["ARG", "VAR"]:
+        elif kind in ["arg", "var"]:
             self.subroutine_scope[name] = Symbol(typing, kind, index)
         else:
-            return Exception("Incorrect identifier kind: {}".format(kind))
+            raise Exception("Incorrect identifier kind: {}".format(kind))
     
     def var_count(self, kind):
         return self.count[kind]
@@ -37,7 +44,7 @@ class SymbolTable:
         elif name in self.subroutine_scope.keys():
             return self.subroutine_scope[name]
         else:
-            return Exception("Missing symbol of name {}".format(name))
+            return None
     
     def kind_of(self, name):
         return self.get_symbol(name).get_kind()

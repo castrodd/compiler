@@ -8,3 +8,6 @@ class JackToken:
     
     def get_token_type(self):
         return self.type
+    
+    def set_token_type(self, token_type):
+        self.type = token_type

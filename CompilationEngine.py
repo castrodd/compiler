@@ -7,7 +7,7 @@ class CompilationEngine:
 
     def verify_and_output_token(self, string):
         if self.tokenizer.token() != string:
-            return Exception("Expected {}; received {}".format(string, self.tokenizer.token()))
+            raise Exception("Expected {}; received {}".format(string, self.tokenizer.token()))
         else:
             self.output_token()
 
@@ -49,7 +49,7 @@ class CompilationEngine:
         if self.tokenizer.token() == "static" or self.tokenizer.token() == "field":
             self.output_token()
         else:
-            return Exception("Incorrect syntax for class variable declaration.")
+            raise Exception("Incorrect syntax for class variable declaration.")
         
         self.compile_type()
         self.output_token()
@@ -67,7 +67,7 @@ class CompilationEngine:
         elif self.tokenizer.token_type() == "identifier":
             self.output_token()
         else:
-            return Exception("Incorrect syntax for type.")
+            raise Exception("Incorrect syntax for type.")
 
     def is_type(self):
         current_token = self.tokenizer.token()
@@ -85,7 +85,7 @@ class CompilationEngine:
         if current_token == "constructor" or current_token == "function" or current_token == "method":
             self.output_token()
         else:
-            return Exception("Incorrect syntax for subroutine declaration.")
+            raise Exception("Incorrect syntax for subroutine declaration.")
 
         if self.tokenizer.token() == "void":
             self.output_token()
@@ -143,7 +143,7 @@ class CompilationEngine:
             elif current_token == "return":
                 self.compile_return()
             else:
-                return Exception("Incorrect syntax for statement.")
+                raise Exception("Incorrect syntax for statement.")
         self.output_closing_tag("statements")
 
     def compile_do(self):
@@ -251,7 +251,7 @@ class CompilationEngine:
             else:
                 self.output_token()
         else:
-            return Exception("Incorrect syntax for term.")
+            raise Exception("Incorrect syntax for term.")
         
         self.output_closing_tag("term")
     
@@ -269,7 +269,7 @@ class CompilationEngine:
             self.compile_expression_list()
             self.verify_and_output_token(")")
         else:
-            return Exception("Incorrect syntax for subroutine call.")
+            raise Exception("Incorrect syntax for subroutine call.")
 
     def is_op(self):
         ops = ["+", "-", "*", "/", "&", "|", "<", ">", "="]
