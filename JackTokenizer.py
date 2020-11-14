@@ -8,10 +8,8 @@ class JackTokenizer:
                                   'var', 'int', 'char', 'boolean', 'void', 'true', 'false',
                                   'null', 'this', 'let', 'do', 'if', 'else', 'while', 'return'])
         self.integers = '1234567890'
-
         self.tokens = list()
         self.tokenize_stream(filename)
-        #self.output_tokens(filename)
         self.current_index = 0
 
     def tokenize_stream(self, file):
@@ -20,28 +18,6 @@ class JackTokenizer:
            clean_lines = self.remove_single_line_comments(all_lines)
            parsed_lines = self.parse_lines(clean_lines)
            self.parse_tokens(parsed_lines)
-        #    print(list(map(lambda x: x.get_token(), self.tokens)))
-    
-    # def output_tokens(self, filename):
-    #     currentFileName = filename.partition(".")[0]
-    #     outputFileName = currentFileName + "T.xml"
-    #     outputFile = open(outputFileName, 'a+')
-
-    #     outputFile.write("<tokens>\n")
-    #     for token in self.tokens:
-    #         tokenType = token.get_token_type()
-    #         token = token.get_token()
-    #         if tokenType == "stringConstant":
-    #             token = token[1:-1] # Strip quotation marks
-    #         if token == "<":
-    #             token = "&lt;"
-    #         if token == ">":
-    #             token = "&gt;"
-    #         if token == "&":
-    #             token = "&amp;" 
-    #         outputFile.write("\t<{tType}> {t} </{tType}>\n".format(tType=tokenType, t=token))
-    #     outputFile.write("</tokens>")
-
 
     def remove_single_line_comments(self, f):
         all_lines = list(f)
