@@ -1,4 +1,5 @@
 from JackToken import *
+from SymbolTable import SymbolTable
 
 class JackTokenizer:
     def __init__(self, filename):
@@ -8,8 +9,14 @@ class JackTokenizer:
                                   'var', 'int', 'char', 'boolean', 'void', 'true', 'false',
                                   'null', 'this', 'let', 'do', 'if', 'else', 'while', 'return'])
         self.integers = '1234567890'
+        self.jack_standard_library = ['Math', 'String', 'Array', 'Output', 'Screen', 'Keyboard', 'Memory', 'Sys']
+
         self.tokens = list()
         self.tokenize_stream(filename)
+        self.add_extended_identifiers()
+        for t in self.tokens:
+            print(t.get_token())
+            print(t.get_token_type())
         self.current_index = 0
 
     def tokenize_stream(self, file):
@@ -89,6 +96,87 @@ class JackTokenizer:
                     current_token = JackToken(token, "identifier")
                     self.tokens.append(current_token)
         return self.tokens
+
+    def add_extended_identifiers(self):
+        symbol_table = SymbolTable()
+        for current_index in range(0, len(self.tokens)):
+            current_token = self.tokens[current_index]
+            token_name = current_token.get_token()
+            token_type = current_token.get_token_type()
+
+            if token_type == "identifier":
+                type_index = current_index - 1
+                kind_index = current_index - 2
+
+                if type_index >= 0:
+                    type_token = self.tokens[type_index].get_token()
+                else:
+                    type_token = None
+
+                if kind_index >= 0:
+                   kind_token = self.tokens[kind_index].get_token()
+                else:
+                    kind_token = None
+
+                def add_to_symbol_table(kind):
+                    identifier_type = type_token
+                    symbol_table.define(token_name, identifier_type, kind)
+
+                # Class
+                if type_token == "class":
+                    symbol_table.set_class_name(token_name)
+                    current_token.set_token_type("class.defined.false.0")
+                # Subroutine
+                elif kind_token in ["constructor", "function", "method"]:
+                    symbol_table.start_subroutine()
+                    symbol_table.define("this", symbol_table.get_class(), "arg")
+                    current_token.set_token_type("subroutine.defined.false.0")
+                # Arg
+                elif kind_token in ["(", ","]:
+                    add_to_symbol_table("arg")
+                    running_index = symbol_table.var_count("arg")
+                    current_token.set_token_type("arg.used.true.{}".format(running_index))
+                # Var
+                elif kind_token == "var":
+                    add_to_symbol_table("var")
+                    running_index = symbol_table.var_count("var")
+                    current_token.set_token_type("var.defined.true.{}".format(running_index))
+                # Static
+                elif kind_token == "static":
+                    add_to_symbol_table("static")
+                    running_index = symbol_table.var_count("static")
+                    current_token.set_token_type("static.defined.true.{}".format(running_index))
+                # Field
+                elif kind_token == "field":
+                    add_to_symbol_table("field")
+                    running_index = symbol_table.var_count("field")
+                    current_token.set_token_type("field.defined.true.{}".format(running_index))
+                # Identifier in list (e.g. var int i, j, k, etc.)
+                elif type_token == ",":
+                    kind_token = None
+                    temp_index = type_index
+                    while (not kind_token) and (temp_index > 0):
+                        temp_index = temp_index - 1
+                        temp_token = self.tokens[temp_index].get_token()
+                        if temp_token in ["field", "static", "var"]:
+                            symbol_table.define(token_name, self.tokens[temp_index + 1].get_token(), temp_token)
+                            running_index = symbol_table.var_count(temp_token)
+                            current_token.set_token_type("{}.defined.true.{}".format(temp_token, running_index))
+                # Abstract data types
+                elif type_token in ["field", "static", "var"]:
+                    current_token.set_token_type("class.used.false.0")
+                # Identifiers already in symbol table
+                elif symbol_table.get_symbol(token_name):
+                    running_index = symbol_table.index_of(token_name)
+                    current_token.set_token_type("{}.used.true.{}".format(token_name, running_index))
+                # Jack Standard Library
+                elif token_name in self.jack_standard_library:
+                    current_token.set_token_type("class.used.false.0")
+                # Method calls
+                elif type_token == ".":
+                    current_token.set_token_type("subroutine.used.false.0")
+                else:
+                    raise Exception("Identifier type and kind not found for {}.".format(token_name))
 
     def hasMoreTokens(self):
         if self.current_index < len(self.tokens) - 1:
