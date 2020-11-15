@@ -1,17 +1,22 @@
+from VMWriter import VMWriter
+
 class CompilationEngine:
-    def __init__(self, input, output):
+    def __init__(self, input, symbol_table, output):
         self.tokenizer = input
-        self.output = output
+        self.writer = VMWriter(output)
+        self.symbol_table = symbol_table
+        self.class_name = None
         while self.tokenizer.hasMoreTokens():
             self.compile_class()
+        self.writer.close()
 
-    def verify_and_output_token(self, string):
+    def verify_token(self, string):
         if self.tokenizer.token() != string:
             raise Exception("Expected {}; received {}".format(string, self.tokenizer.token()))
         else:
-            self.output_token()
+            self.tokenizer.advance()
 
-    def output_token(self):
+    def advance_token(self):
         current_token = self.tokenizer.token()
         current_token_type = self.tokenizer.token_type()
         if current_token_type == "stringConstant":
@@ -22,50 +27,49 @@ class CompilationEngine:
             current_token = "&gt;"
         if current_token == "&":
             current_token = "&amp;"
-        
-        self.output.write("\t<{tType}> {t} </{tType}>\n".format(tType=current_token_type, t=current_token))
+        #self.output.write("\t<{tType}> {t} </{tType}>\n".format(tType=current_token_type, t=current_token))
         self.tokenizer.advance()
-    
-    def output_opening_tag(self, tag_name):
-        self.output.write("<{tag}>\n".format(tag=tag_name))
-
-    def output_closing_tag(self, tag_name):
-        self.output.write("</{tag}>\n".format(tag=tag_name))
 
     def compile_class(self):
-        self.output_opening_tag("class")
-        self.verify_and_output_token("class")
-        self.output_token()
-        self.verify_and_output_token("{")
+        # Class keyword
+        self.verify_token("class")
+        # Class name
+        self.class_name = self.tokenizer.token()
+        self.advance_token()
+        # { symbol
+        self.verify_token("{")
+        # Class variable declarations
         while self.tokenizer.token() in ["static", "field"]:
             self.compile_class_var_dec()
+        # Class subroutines
         while self.tokenizer.token() in ["constructor", "function", "method"]:
             self.compile_subroutine()
-        self.verify_and_output_token("}")
-        self.output_closing_tag("class")
+        # } symbol
+        self.verify_token("}")
 
     def compile_class_var_dec(self):
-        self.output_opening_tag("classVarDec")
+        # Class variable kind
         if self.tokenizer.token() == "static" or self.tokenizer.token() == "field":
-            self.output_token()
+            self.advance_token()
         else:
             raise Exception("Incorrect syntax for class variable declaration.")
-        
-        self.compile_type()
-        self.output_token()
+        # Class variable type
+        self.validate_type()
+        # Class variable name
+        self.advance_token()
+        # Handle list of variables
         while self.tokenizer.token() == ",":
-            self.verify_and_output_token(",")
-            self.output_token()
+            self.verify_token(",")
+            self.advance_token()
+        # ; symbol
+        self.verify_token(";")
 
-        self.verify_and_output_token(";")
-        self.output_closing_tag("classVarDec")
-
-    def compile_type(self):
+    def validate_type(self):
         current_token = self.tokenizer.token()
         if current_token == "int" or current_token == "char" or current_token == "boolean":
-            self.output_token()
+            self.advance_token()
         elif "identifier" in self.tokenizer.token_type():
-            self.output_token()
+            self.advance_token()
         else:
             raise Exception("Incorrect syntax for type.")
 
@@ -79,76 +83,98 @@ class CompilationEngine:
             return False
 
     def compile_subroutine(self):
-        self.output_opening_tag("subroutineDec")
-        
+        # Subroutine type
         current_token = self.tokenizer.token()
-        if current_token == "constructor" or current_token == "function" or current_token == "method":
-            self.output_token()
+        if current_token == "constructor" or current_token == "function":
+            self.advance_token()
+        elif current_token == "method":
+            total_parameters = 1
+            self.advance_token()
         else:
             raise Exception("Incorrect syntax for subroutine declaration.")
-
+        
+        # Return type
         if self.tokenizer.token() == "void":
-            self.output_token()
+            is_void = True
+            self.advance_token()
         else:
-            self.compile_type()
+            is_void = False
+            self.validate_type()
 
-        self.output_token()
-        self.verify_and_output_token("(")
-        self.compile_parameter_list()
-        self.verify_and_output_token(")")
+        # Subroutine name
+        subroutine_name = self.tokenizer.token()
+        self.advance_token()
+        # ( symbol
+        self.verify_token("(")
+        #Parameter list
+        total_parameters += self.compile_parameter_list()
+        # ) symbol
+        self.verify_token(")")
 
-        self.output_opening_tag("subroutineBody")
-        self.verify_and_output_token("{")
+        self.writer.write_function(subroutine_name, total_parameters)
+
+        # Subroutine body
+        #    { symbol
+        self.verify_token("{")
+        # Subroutine variable declarations
         while self.tokenizer.token() == "var":
             self.compile_var_dec()
+        # Subroutine statements
         self.compile_statements()
-        self.verify_and_output_token("}")
-        self.output_closing_tag("subroutineBody")
-        self.output_closing_tag("subroutineDec")
+        # } symbol
+        self.verify_token("}")
+
+        if is_void:
+            self.writer.write_push("constant", 0)
+        self.writer.write_return()
+
 
     def compile_parameter_list(self):
-        self.output_opening_tag("parameterList")
+        total_parameters = 0
         while self.is_type():
-            self.compile_type()
-            self.output_token()
+            # Variable type
+            self.validate_type()
+            # Variable name
+            self.advance_token()
+            total_parameters += 1
+            # Further parameters
             while self.tokenizer.token() == ",":
-                self.verify_and_output_token(",")
-                self.compile_type()
-                self.output_token()
-        self.output_closing_tag("parameterList")
+                self.verify_token(",")
+                self.validate_type()
+                self.advance_token()
+                total_parameters += 1
+        return total_parameters
 
     def compile_var_dec(self):
-        self.output_opening_tag("varDec")
-        self.verify_and_output_token("var")
-        self.compile_type()
-        self.output_token()
+        # Variable declarations
+        self.verify_token("var")
+        self.validate_type()
+        self.advance_token()
         while self.tokenizer.token() == ",":
-            self.verify_and_output_token(",")
-            self.output_token()
-        self.verify_and_output_token(";")
-        self.output_closing_tag("varDec")
+            self.verify_token(",")
+            self.advance_token()
+        self.verify_token(";")
 
     def compile_statements(self):
-        self.output_opening_tag("statements")
+        # Statement keyword
         while self.tokenizer.token() in ["let", "if", "while", "do", "return"]:
-            current_token = self.tokenizer.token()
-            if current_token == "let":
+            token = self.tokenizer.token()
+            if token == "let":
                 self.compile_let()
-            elif current_token == "if":
+            elif token == "if":
                 self.compile_if()
-            elif current_token == "while":
+            elif token == "while":
                 self.compile_while()
-            elif current_token == "do":
+            elif token == "do":
                 self.compile_do()
-            elif current_token == "return":
+            elif token == "return":
                 self.compile_return()
             else:
                 raise Exception("Incorrect syntax for statement.")
-        self.output_closing_tag("statements")
 
     def compile_do(self):
-        self.output_opening_tag("doStatement")
-        self.verify_and_output_token("do")
+        # Do keyword
+        self.verify_token("do")
         
         self.tokenizer.advance()
         next_token = self.tokenizer.token()
