@@ -5,7 +5,7 @@ from JackTokenizer import JackTokenizer
 
 def create_output_file(filename):
         currentFileName = filename.partition(".")[0]
-        outputFileName = currentFileName + ".xml"
+        outputFileName = currentFileName + ".vm"
         print("OUTPUT: ", outputFileName)
         outputFile = open(outputFileName, 'a+')
         return outputFile
