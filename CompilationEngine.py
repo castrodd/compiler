@@ -64,7 +64,7 @@ class CompilationEngine:
         current_token = self.tokenizer.token()
         if current_token == "int" or current_token == "char" or current_token == "boolean":
             self.output_token()
-        elif self.tokenizer.token_type() == "identifier":
+        elif "identifier" in self.tokenizer.token_type():
             self.output_token()
         else:
             raise Exception("Incorrect syntax for type.")
@@ -73,7 +73,7 @@ class CompilationEngine:
         current_token = self.tokenizer.token()
         if current_token == "int" or current_token == "char" or current_token == "boolean":
             return True
-        elif self.tokenizer.token_type() == "identifier":
+        elif "identifier" in self.tokenizer.token_type():
             return True
         else:
             return False
@@ -237,7 +237,7 @@ class CompilationEngine:
         elif current_token == "-" or current_token == "~":
             self.output_token()
             self.compile_term()
-        elif current_token_type == "identifier":
+        elif "identifier" in current_token_type:
             self.tokenizer.advance()
             next_token = self.tokenizer.token()
             self.tokenizer.reverse()
@@ -287,8 +287,9 @@ class CompilationEngine:
         self.output_closing_tag("expressionList")
     
     def is_expression(self):
-        expression_types = ["integerConstant", "stringConstant", "identifier", "keyword"]
+        expression_types = ["integerConstant", "stringConstant", "keyword"]
+        token_type = self.tokenizer.token_type()
         symbols = ["(", "~", "-"]
-        if self.tokenizer.token_type() in expression_types or self.tokenizer.token() in symbols:
+        if token_type in expression_types or "identifier" in token_type or self.tokenizer.token() in symbols:
             return True
         return False
