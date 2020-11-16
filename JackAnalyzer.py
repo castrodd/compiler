@@ -2,6 +2,7 @@ import os
 import sys
 from CompilationEngine import CompilationEngine
 from JackTokenizer import JackTokenizer
+from SymbolTable import SymbolTable
 
 def create_output_file(filename):
         currentFileName = filename.partition(".")[0]
@@ -33,7 +34,8 @@ def main():
     for file in file_or_directory:
         print("INPUT: ", file)
         output_file = create_output_file(file)
-        tokenizer = JackTokenizer(file)
+        symbol_table = SymbolTable()
+        tokenizer = JackTokenizer(file, symbol_table)
         CompilationEngine(tokenizer, output_file)
     print("Compiler finished.")
 
