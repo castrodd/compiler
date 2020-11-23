@@ -5,7 +5,7 @@ class SymbolTable:
         self.count = {
             "static": 0,
             "field": 0,
-            "arg": 0,
+            "argument": 0,
             "var": 0
         }
         self.class_name = None
@@ -17,6 +17,9 @@ class SymbolTable:
 
     def get_class(self):
         return self.class_name
+    
+    def get_class_scope_keys(self):
+        return self.class_scope.keys()
     
     def start_subroutine(self):
         self.subroutine_scope = {}
@@ -30,7 +33,7 @@ class SymbolTable:
         index = self.increment_and_get_index(kind)
         if kind in ["static", "field"]:
             self.class_scope[name] = Symbol(typing, kind, index)
-        elif kind in ["arg", "var"]:
+        elif kind in ["argument", "var"]:
             self.subroutine_scope[name] = Symbol(typing, kind, index)
         else:
             raise Exception("Incorrect identifier kind: {}".format(kind))

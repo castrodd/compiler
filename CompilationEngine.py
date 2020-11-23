@@ -5,6 +5,7 @@ class CompilationEngine:
         self.tokenizer = input
         self.writer = VMWriter(output)
         self.class_name = None
+        self.label_count = 1
         while self.tokenizer.hasMoreTokens():
             self.compile_class()
         self.writer.close()
@@ -89,6 +90,8 @@ class CompilationEngine:
             self.advance_token()
         elif current_token == "method":
             total_parameters += 1
+            self.writer.write_push("argument", 0)
+            self.writer.write_pop("pointer", 0)
             self.advance_token()
         else:
             raise Exception("Incorrect syntax for subroutine declaration.")
@@ -163,7 +166,10 @@ class CompilationEngine:
             elif token == "do":
                 self.compile_do()
             elif token == "return":
-                self.compile_return(args[0])
+                if len(args) > 0:
+                    self.compile_return(args[0])
+                else:
+                    self.compile_return(False)
             else:
                 raise Exception("Incorrect syntax for statement.")
 
@@ -180,7 +186,17 @@ class CompilationEngine:
 
     def compile_let(self):
         self.verify_token("let")
+
+        current_var = self.tokenizer.token_type()
+        current_var_kind = current_var.split(".")[1]
+        current_var_index = current_var.split(".")[-1]
+        if "field" in current_var_kind:
+            current_var_kind = "this"
+        elif "var" in current_var_kind:
+            current_var_kind = "local"
+        
         self.advance_token()
+        
         if self.tokenizer.token() == "[":
             self.verify_token("[")
             self.compile_expression()
@@ -190,14 +206,26 @@ class CompilationEngine:
         self.compile_expression()
         self.verify_token(";")
 
+        self.writer.write_pop(current_var_kind, current_var_index)
+
     def compile_while(self):
+        label_one,label_two = self.create_labels()
+        
+        self.writer.write_label(label_one)
         self.verify_token("while")
         self.verify_token("(")
         self.compile_expression()
         self.verify_token(")")
+
+        self.writer.write_artihmetic("not")
+        self.writer.write_if(label_two)
+
         self.verify_token("{")
         self.compile_statements()
         self.verify_token("}")
+
+        self.writer.write_goto(label_one)
+        self.writer.write_label(label_two)
 
     def compile_return(self, is_void):
         self.verify_token("return")
@@ -211,19 +239,37 @@ class CompilationEngine:
             self.advance_token()
 
     def compile_if(self):
+        label_one,label_two = self.create_labels()
+
         self.verify_token("if")
         self.verify_token("(")
         self.compile_expression()
         self.verify_token(")")
+
+        self.writer.write_artihmetic("not")
+        self.writer.write_if(label_one)
+
         self.verify_token("{")
         self.compile_statements()
         self.verify_token("}")
+
+        self.writer.write_goto(label_two)
+        self.writer.write_label(label_one)
 
         if self.tokenizer.token() == "else":
             self.verify_token("else")
             self.verify_token("{")
             self.compile_statements()
             self.verify_token("}")
+        
+        self.writer.write_label(label_two)
+
+    def create_labels(self):
+        label_one = "L{}".format(self.label_count)
+        self.label_count += 1
+        label_two = "L{}".format(self.label_count)
+        self.label_count += 1
+        return (label_one, label_two)
 
     def compile_expression(self):
         self.compile_term()
