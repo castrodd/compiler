@@ -3,10 +3,10 @@ from Symbol import Symbol
 class SymbolTable:
     def __init__(self):
         self.count = {
-            "static": 0,
-            "field": 0,
-            "argument": 0,
-            "var": 0
+            "static": -1,
+            "field": -1,
+            "argument": -1,
+            "var": -1
         }
         self.class_name = None
         self.class_scope = {}
@@ -23,6 +23,11 @@ class SymbolTable:
     
     def start_subroutine(self):
         self.subroutine_scope = {}
+        self.reset_count("argument")
+        self.reset_count("var")
+
+    def reset_count(self, kind):
+        self.count[kind] = -1
 
     def increment_and_get_index(self, kind):
         current = self.count[kind]

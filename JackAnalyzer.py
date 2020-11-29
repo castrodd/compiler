@@ -34,8 +34,7 @@ def main():
     for file in file_or_directory:
         print("INPUT: ", file)
         output_file = create_output_file(file)
-        symbol_table = SymbolTable()
-        tokenizer = JackTokenizer(file, symbol_table)
+        tokenizer = JackTokenizer(file)
         CompilationEngine(tokenizer, output_file)
     print("Compiler finished.")
 

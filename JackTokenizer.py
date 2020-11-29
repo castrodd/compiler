@@ -2,7 +2,7 @@ from JackToken import *
 from SymbolTable import SymbolTable
 
 class JackTokenizer:
-    def __init__(self, filename, symbol_table):
+    def __init__(self, filename):
         self.symbols = frozenset(['{', '}', '(', ')', '[', ']', '.', ',', ';', '+', '-', 
                                  '*', '/', '&', '|', '<', '>', '=', '~'])
         self.keywords = frozenset(['class', 'constructor', 'function', 'method', 'field', 'static',
@@ -12,9 +12,11 @@ class JackTokenizer:
         self.jack_standard_library = ['Math', 'String', 'Array', 'Output', 'Screen', 'Keyboard', 'Memory', 'Sys']
 
         self.tokens = list()
-        self.symbol_table = symbol_table
+        self.symbol_table = SymbolTable()
         self.tokenize_stream(filename)
         self.add_extended_identifiers()
+        for t in self.tokens:
+            print(t.get_token(), t.get_token_type())
         self.current_index = 0
 
     def tokenize_stream(self, file):
@@ -126,7 +128,8 @@ class JackTokenizer:
                 # Subroutine
                 elif kind_token in ["constructor", "function", "method"]:
                     self.symbol_table.start_subroutine()
-                    self.symbol_table.define("this", self.symbol_table.get_class(), "argument")
+                    if kind_token == "method":
+                        self.symbol_table.define("this", self.symbol_table.get_class(), "argument")
                     current_token.set_token_type("identifier.subroutine.defined.false.0")
                 # Arg
                 elif kind_token in ["(", ","]:

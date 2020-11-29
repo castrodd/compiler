@@ -27,8 +27,10 @@ class CompilationEngine:
             current_token = "&gt;"
         if current_token == "&":
             current_token = "&amp;"
-        #self.output.write("\t<{tType}> {t} </{tType}>\n".format(tType=current_token_type, t=current_token))
         self.tokenizer.advance()
+
+    def reverse_token(self):
+        self.tokenizer.reverse()
 
     def compile_class(self):
         # Class keyword
@@ -282,21 +284,32 @@ class CompilationEngine:
     def compile_term(self):
         current_token = self.tokenizer.token()
         current_token_type = self.tokenizer.token_type()
-        simple_terms = ["integerConstant", "stringConstant"]
         keyword_constants = ["true", "false", "null", "this"]
         
         if current_token_type == "integerConstant":
             self.writer.write_push("constant", current_token)
             self.advance_token()
-        elif current_token_type in simple_terms or current_token in keyword_constants: 
+        elif current_token_type == "stringConstant" or current_token in keyword_constants: 
             self.advance_token()
         elif current_token == "(":
             self.verify_token("(")
             self.compile_expression()
             self.verify_token(")")
-        elif current_token == "-" or current_token == "~":
+        elif current_token == "~":
             self.advance_token()
             self.compile_term()
+        elif current_token == "-":
+            self.reverse_token()
+            previous_token = self.tokenizer.token()
+            self.advance_token()
+
+            if previous_token == ",":
+                self.advance_token()
+                self.writer.write_push("constant", self.tokenizer.token())
+                self.writer.write_artihmetic("neg")
+                self.advance_token()
+                self.advance_token()
+
         elif "identifier" in current_token_type:
             self.tokenizer.advance()
             next_token = self.tokenizer.token()
@@ -309,6 +322,10 @@ class CompilationEngine:
             elif next_token == "(" or next_token == ".":
                 self.compile_subroutine_call(next_token)
             else:
+                identifier_parts = self.tokenizer.token_type().split(".")
+                if identifier_parts[1] == "var":
+                    identifier_parts[1] = "local"
+                self.writer.write_push(identifier_parts[1], identifier_parts[-1])
                 self.advance_token()
         else:
             raise Exception("Incorrect syntax for term.")
@@ -385,3 +402,9 @@ class CompilationEngine:
         if token_type in expression_types or "identifier" in token_type or self.tokenizer.token() in symbols:
             return True
         return False
+
+    def get_previous_token(self):
+        self.tokenizer.reverse()
+        previous_token = self.tokenizer.token()
+        self.tokenizer.advance()
+        return previous_token
