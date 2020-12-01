@@ -21,6 +21,9 @@ class SymbolTable:
     def get_class_scope_keys(self):
         return self.class_scope.keys()
     
+    def get_subroutine_scope_keys(self):
+        return self.subroutine_scope.keys()
+    
     def start_subroutine(self):
         self.subroutine_scope = {}
         self.reset_count("argument")
@@ -35,13 +38,25 @@ class SymbolTable:
         return self.count[kind]
     
     def define(self, name, typing, kind):
+        if self.exists(name, kind):
+            return 0
+
         index = self.increment_and_get_index(kind)
         if kind in ["static", "field"]:
             self.class_scope[name] = Symbol(typing, kind, index)
         elif kind in ["argument", "var"]:
+            print(name, kind, index)
             self.subroutine_scope[name] = Symbol(typing, kind, index)
         else:
             raise Exception("Incorrect identifier kind: {}".format(kind))
+
+    def exists(self, name, kind):
+        if kind in ["static", "field"] and name in self.get_class_scope_keys():
+            return True
+        elif kind in ["argument", "var"] and name in self.get_subroutine_scope_keys():
+            return True
+        else:
+            return False
     
     def var_count(self, kind):
         return self.count[kind]
@@ -53,6 +68,14 @@ class SymbolTable:
             return self.subroutine_scope[name]
         else:
             return None
+
+    def get_class_symbol(self, name):
+        if name in self.class_scope.keys():
+            return self.class_scope[name]
+
+    def get_subroutine_symbol(self, name):
+        if name in self.subroutine_scope.keys():
+            return self.subroutine_scope[name]
     
     def kind_of(self, name):
         return self.get_symbol(name).get_kind()

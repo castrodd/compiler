@@ -151,7 +151,9 @@ class JackTokenizer:
                     add_to_symbol_table("field")
                     running_index = self.symbol_table.var_count("field")
                     current_token.set_token_type("identifier.field.defined.true.{}".format(running_index))
-                # Identifier in list (e.g. var int i, j, k, etc.)
+                # Identifier in list
+                # Var declarations like var int i, j, k
+                # Parameter lists like (x, y)
                 elif type_token == ",":
                     kind_token = None
                     temp_index = type_index
@@ -162,6 +164,12 @@ class JackTokenizer:
                             self.symbol_table.define(token_name, self.tokens[temp_index + 1].get_token(), temp_token)
                             running_index = self.symbol_table.var_count(temp_token)
                             current_token.set_token_type("identifier.{}.defined.true.{}".format(temp_token, running_index))
+                            break
+                        elif temp_token == "(":
+                            running_index = self.symbol_table.index_of(token_name)
+                            token_type = self.symbol_table.kind_of(token_name)
+                            current_token.set_token_type("identifier.{}.used.true.{}".format(token_type, running_index))
+                            break
                 # Abstract data types
                 elif type_token in ["field", "static", "var"]:
                     current_token.set_token_type("identifier.class.used.false.0")

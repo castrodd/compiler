@@ -6,6 +6,7 @@ class CompilationEngine:
         self.writer = VMWriter(output)
         self.class_name = None
         self.label_count = 1
+        self.negative_term = False
         while self.tokenizer.hasMoreTokens():
             self.compile_class()
         self.writer.close()
@@ -112,48 +113,53 @@ class CompilationEngine:
         # ( symbol
         self.verify_token("(")
         #Parameter list
-        total_parameters += self.compile_parameter_list()
+        self.compile_parameter_list()
         # ) symbol
         self.verify_token(")")
-
-        self.writer.write_function("{}.{}".format(self.class_name, subroutine_name), total_parameters)
 
         # Subroutine body
         #    { symbol
         self.verify_token("{")
         # Subroutine variable declarations
+        total_vars = 0
         while self.tokenizer.token() == "var":
-            self.compile_var_dec()
+            total_vars += self.compile_var_dec()
+
+        self.writer.write_function("{}.{}".format(self.class_name, subroutine_name), total_vars)
+
         # Subroutine statements
         self.compile_statements(is_void)
         # } symbol
         self.verify_token("}")
 
     def compile_parameter_list(self):
-        total_parameters = 0
         while self.is_type():
             # Variable type
             self.validate_type()
             # Variable name
             self.advance_token()
-            total_parameters += 1
             # Further parameters
             while self.tokenizer.token() == ",":
                 self.verify_token(",")
                 self.validate_type()
                 self.advance_token()
-                total_parameters += 1
-        return total_parameters
 
     def compile_var_dec(self):
+        total_vars = 0
+
         # Variable declarations
         self.verify_token("var")
         self.validate_type()
         self.advance_token()
+        total_vars += 1
+
         while self.tokenizer.token() == ",":
             self.verify_token(",")
             self.advance_token()
+            total_vars += 1
+
         self.verify_token(";")
+        return total_vars
 
     def compile_statements(self, *args):
         # Statement keyword
@@ -211,7 +217,7 @@ class CompilationEngine:
         self.writer.write_pop(current_var_kind, current_var_index)
 
     def compile_while(self):
-        label_one,label_two = self.create_labels()
+        label_one,label_two = self.create_label(), self.create_label()
         
         self.writer.write_label(label_one)
         self.verify_token("while")
@@ -238,25 +244,27 @@ class CompilationEngine:
             self.writer.write_return()
         else:
             self.compile_expression()
+            self.writer.write_return()
             self.advance_token()
 
     def compile_if(self):
-        label_one,label_two = self.create_labels()
+        label_one,label_two, label_three = self.create_label(), self.create_label(), self.create_label()
 
         self.verify_token("if")
         self.verify_token("(")
         self.compile_expression()
         self.verify_token(")")
 
-        self.writer.write_artihmetic("not")
         self.writer.write_if(label_one)
+        self.writer.write_goto(label_two)
+        self.writer.write_label(label_one)
 
         self.verify_token("{")
         self.compile_statements()
         self.verify_token("}")
 
-        self.writer.write_goto(label_two)
-        self.writer.write_label(label_one)
+        self.writer.write_goto(label_three)
+        self.writer.write_label(label_two)
 
         if self.tokenizer.token() == "else":
             self.verify_token("else")
@@ -264,14 +272,12 @@ class CompilationEngine:
             self.compile_statements()
             self.verify_token("}")
         
-        self.writer.write_label(label_two)
+        self.writer.write_label(label_three)
 
-    def create_labels(self):
-        label_one = "L{}".format(self.label_count)
+    def create_label(self):
+        label = "L{}".format(self.label_count)
         self.label_count += 1
-        label_two = "L{}".format(self.label_count)
-        self.label_count += 1
-        return (label_one, label_two)
+        return label
 
     def compile_expression(self):
         self.compile_term()
@@ -284,12 +290,22 @@ class CompilationEngine:
     def compile_term(self):
         current_token = self.tokenizer.token()
         current_token_type = self.tokenizer.token_type()
-        keyword_constants = ["true", "false", "null", "this"]
+        keyword_constants = ["this"]
         
         if current_token_type == "integerConstant":
             self.writer.write_push("constant", current_token)
+            if self.negative_term:
+                self.writer.write_artihmetic("neg")
+            self.negative_term = False
             self.advance_token()
         elif current_token_type == "stringConstant" or current_token in keyword_constants: 
+            self.advance_token()
+        elif current_token == "true":
+            self.writer.write_push("constant", 1)
+            self.writer.write_artihmetic("neg")
+            self.advance_token()
+        elif current_token == "false" or current_token == "null":
+            self.writer.write_push("constant", 0)
             self.advance_token()
         elif current_token == "(":
             self.verify_token("(")
@@ -298,17 +314,17 @@ class CompilationEngine:
         elif current_token == "~":
             self.advance_token()
             self.compile_term()
+            self.writer.write_artihmetic("not")
         elif current_token == "-":
             self.reverse_token()
             previous_token = self.tokenizer.token()
             self.advance_token()
 
             if previous_token == ",":
-                self.advance_token()
-                self.writer.write_push("constant", self.tokenizer.token())
-                self.writer.write_artihmetic("neg")
-                self.advance_token()
-                self.advance_token()
+                self.negative_term = True
+            
+            self.advance_token()
+            self.compile_term()
 
         elif "identifier" in current_token_type:
             self.tokenizer.advance()
@@ -325,6 +341,7 @@ class CompilationEngine:
                 identifier_parts = self.tokenizer.token_type().split(".")
                 if identifier_parts[1] == "var":
                     identifier_parts[1] = "local"
+
                 self.writer.write_push(identifier_parts[1], identifier_parts[-1])
                 self.advance_token()
         else:
