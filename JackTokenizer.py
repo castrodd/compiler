@@ -2,7 +2,7 @@ from JackToken import *
 from SymbolTable import SymbolTable
 
 class JackTokenizer:
-    def __init__(self, filename):
+    def __init__(self, filename, class_record):
         self.symbols = frozenset(['{', '}', '(', ')', '[', ']', '.', ',', ';', '+', '-', 
                                  '*', '/', '&', '|', '<', '>', '=', '~'])
         self.keywords = frozenset(['class', 'constructor', 'function', 'method', 'field', 'static',
@@ -10,7 +10,8 @@ class JackTokenizer:
                                   'null', 'this', 'let', 'do', 'if', 'else', 'while', 'return'])
         self.integers = '1234567890'
         self.jack_standard_library = ['Math', 'String', 'Array', 'Output', 'Screen', 'Keyboard', 'Memory', 'Sys']
-
+        self.class_record = class_record
+        
         self.tokens = list()
         self.symbol_table = SymbolTable()
         self.tokenize_stream(filename)
@@ -151,6 +152,9 @@ class JackTokenizer:
                     add_to_symbol_table("field")
                     running_index = self.symbol_table.var_count("field")
                     current_token.set_token_type("identifier.field.defined.true.{}".format(running_index))
+                # Do Statement
+                elif type_token == "do":
+                    current_token.set_token_type("identifier.subroutine.used.false.0")
                 # Identifier in list
                 # Var declarations like var int i, j, k
                 # Parameter lists like (x, y)
@@ -179,7 +183,7 @@ class JackTokenizer:
                     token_type = self.symbol_table.kind_of(token_name)
                     current_token.set_token_type("identifier.{}.used.true.{}".format(token_type, running_index))
                 # Identifier is the class itself
-                elif token_name == self.symbol_table.get_class():
+                elif self.class_record.exists(token_name):
                     current_token.set_token_type("identifier.class.used.0")
                 # Jack Standard Library
                 elif token_name in self.jack_standard_library:
@@ -188,7 +192,7 @@ class JackTokenizer:
                 elif type_token == ".":
                     current_token.set_token_type("identifier.subroutine.used.false.0")
                 else:
-                    raise Exception("Identifier type {} and kind {} not found for {}.".format(type_token, kind_token, token_name))
+                    raise Exception("Identifier type {} and kind {} not found for {} {}.".format(type_token, kind_token, token_type, token_name))
 
     def hasMoreTokens(self):
         if self.current_index < len(self.tokens) - 1:

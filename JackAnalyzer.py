@@ -3,6 +3,7 @@ import sys
 from CompilationEngine import CompilationEngine
 from JackTokenizer import JackTokenizer
 from SymbolTable import SymbolTable
+from ClassRecord import ClassRecord
 
 def create_output_file(filename):
         currentFileName = filename.partition(".")[0]
@@ -29,12 +30,26 @@ def get_list_of_files():
     else:
         return [input_name]
 
+def add_file_names_to_class_record(file_names, class_record):
+    for file in file_names:
+        if "/" in file:
+            parsed_name_with_extension = file.split("/")[-1]
+        else:
+            parsed_name_with_extension = file
+        
+        parsed_name_no_extension = parsed_name_with_extension.split(".")[0]
+
+        class_record.add_name(parsed_name_no_extension)
+
+
 def main():
-    file_or_directory = get_list_of_files()
-    for file in file_or_directory:
+    file_names = get_list_of_files()
+    class_record = ClassRecord()
+    add_file_names_to_class_record(file_names, class_record)
+    for file in file_names:
         print("INPUT: ", file)
         output_file = create_output_file(file)
-        tokenizer = JackTokenizer(file)
+        tokenizer = JackTokenizer(file, class_record)
         CompilationEngine(tokenizer, output_file)
     print("Compiler finished.")
 

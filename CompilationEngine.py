@@ -88,11 +88,9 @@ class CompilationEngine:
     def compile_subroutine(self):
         # Subroutine type
         current_token = self.tokenizer.token()
-        total_parameters = 0
         if current_token == "constructor" or current_token == "function":
             self.advance_token()
         elif current_token == "method":
-            total_parameters += 1
             self.writer.write_push("argument", 0)
             self.writer.write_pop("pointer", 0)
             self.advance_token()
