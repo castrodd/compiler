@@ -86,9 +86,16 @@ class CompilationEngine:
             return False
 
     def compile_subroutine(self):
+        # Check if subroutine type is constructor
+        is_constructor = False
+
         # Subroutine type
         current_token = self.tokenizer.token()
-        if current_token == "constructor" or current_token == "function":
+        if current_token == "constructor":
+            total_fields = self.tokenizer.token_type().split(".")[1]
+            is_constructor = True
+            self.advance_token()
+        elif current_token == "function":
             self.advance_token()
         elif current_token == "method":
             self.writer.write_push("argument", 0)
@@ -124,11 +131,18 @@ class CompilationEngine:
             total_vars += self.compile_var_dec()
 
         self.writer.write_function("{}.{}".format(self.class_name, subroutine_name), total_vars)
-
+        if is_constructor:
+            self.allocate_memory(total_fields)
+            
         # Subroutine statements
         self.compile_statements(is_void)
         # } symbol
         self.verify_token("}")
+    
+    def allocate_memory(self, total_fields):
+        self.writer.write_push("constant", total_fields)
+        self.writer.write_call("Memory.alloc", 1)
+        self.writer.write_pop("pointer", 0)
 
     def compile_parameter_list(self):
         while self.is_type():
@@ -425,10 +439,10 @@ class CompilationEngine:
         return total_arguments
     
     def is_expression(self):
-        expression_types = ["integerConstant", "stringConstant", "keyword"]
+        constants = ["integerConstant", "stringConstant"]
         token_type = self.tokenizer.token_type()
         symbols = ["(", "~", "-"]
-        if token_type in expression_types or "identifier" in token_type or self.tokenizer.token() in symbols:
+        if token_type in constants or "identifier" in token_type or "keyword" in token_type or self.tokenizer.token() in symbols:
             return True
         return False
 

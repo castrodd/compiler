@@ -59,7 +59,7 @@ class SymbolTable:
             return False
     
     def var_count(self, kind):
-        return self.count[kind]
+        return self.count[kind] + 1
 
     def get_symbol(self, name):
         if name in self.class_scope.keys():
