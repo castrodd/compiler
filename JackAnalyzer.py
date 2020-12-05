@@ -30,25 +30,18 @@ def get_list_of_files():
     else:
         return [input_name]
 
-def add_file_names_to_class_record(file_names, class_record):
-    for file in file_names:
-        if "/" in file:
-            parsed_name_with_extension = file.split("/")[-1]
-        else:
-            parsed_name_with_extension = file
-        
-        parsed_name_no_extension = parsed_name_with_extension.split(".")[0]
-
-        class_record.add_name(parsed_name_no_extension)
-
+def strip_file_name(name):
+    if "/" in name:
+        name = name.split("/")[-1]
+    return name.partition(".")[0]
 
 def main():
     file_names = get_list_of_files()
     class_record = ClassRecord()
-    add_file_names_to_class_record(file_names, class_record)
     for file in file_names:
         print("INPUT: ", file)
         output_file = create_output_file(file)
+        class_record.add_name(strip_file_name(file))
         tokenizer = JackTokenizer(file, class_record)
         CompilationEngine(tokenizer, output_file)
     print("Compiler finished.")

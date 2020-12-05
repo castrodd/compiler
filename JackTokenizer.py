@@ -16,8 +16,8 @@ class JackTokenizer:
         self.symbol_table = SymbolTable()
         self.tokenize_stream(filename)
         self.add_extended_identifiers()
-        for t in self.tokens:
-            print(t.get_token(), t.get_token_type())
+        # for t in self.tokens:
+        #     print(t.get_token(), t.get_token_type())
         self.current_index = 0
 
     def tokenize_stream(self, file):
