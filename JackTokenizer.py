@@ -16,8 +16,8 @@ class JackTokenizer:
         self.symbol_table = SymbolTable()
         self.tokenize_stream(filename)
         self.add_extended_identifiers()
-        # for t in self.tokens:
-        #     print(t.get_token(), t.get_token_type())
+        for t in self.tokens:
+            print(t.get_token(), t.get_token_type())
         self.current_index = 0
 
     def tokenize_stream(self, file):
@@ -122,8 +122,14 @@ class JackTokenizer:
                     identifier_type = type_token
                     self.symbol_table.define(token_name, identifier_type, kind)
 
+                # Check if in symbol table
+                if self.symbol_table.get_symbol(token_name):
+                    running_index = self.symbol_table.index_of(token_name)
+                    token_kind = self.symbol_table.kind_of(token_name)
+                    token_type = self.symbol_table.type_of(token_name)
+                    current_token.set_token_type("identifier.{}.used.true.{}.{}".format(token_kind, running_index, token_type))
                 # Class
-                if type_token == "class":
+                elif type_token == "class":
                     self.symbol_table.set_class_name(token_name)
                     current_token.set_token_type("identifier.class.defined.false.0")
                 # Subroutine
@@ -177,11 +183,6 @@ class JackTokenizer:
                 # Abstract data types
                 elif type_token in ["field", "static", "var"]:
                     current_token.set_token_type("identifier.class.used.false.0")
-                # Identifiers already in symbol table
-                elif self.symbol_table.get_symbol(token_name):
-                    running_index = self.symbol_table.index_of(token_name)
-                    token_type = self.symbol_table.kind_of(token_name)
-                    current_token.set_token_type("identifier.{}.used.true.{}".format(token_type, running_index))
                 # Identifier is the class itself
                 elif self.class_record.exists(token_name):
                     current_token.set_token_type("identifier.class.used.0")

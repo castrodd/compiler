@@ -45,7 +45,7 @@ class SymbolTable:
         if kind in ["static", "field"]:
             self.class_scope[name] = Symbol(typing, kind, index)
         elif kind in ["argument", "var"]:
-            print(name, kind, index)
+            # print(name, kind, index)
             self.subroutine_scope[name] = Symbol(typing, kind, index)
         else:
             raise Exception("Incorrect identifier kind: {}".format(kind))

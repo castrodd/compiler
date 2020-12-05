@@ -186,6 +186,15 @@ class CompilationEngine:
         next_token = self.tokenizer.token()
         self.tokenizer.reverse()
 
+        current_token_type = self.tokenizer.token_type().split(".")
+        current_segment = current_token_type[1]
+        if current_segment == "var":
+            current_segment = "local"
+        if current_segment == "field":
+            current_segment = "this"
+        current_index = current_token_type[4]
+        self.writer.write_push(current_segment, current_index)
+
         self.compile_subroutine_call(next_token)
         self.verify_token(";")
         self.writer.write_pop("temp", 0)
@@ -195,7 +204,7 @@ class CompilationEngine:
 
         current_var = self.tokenizer.token_type()
         current_var_kind = current_var.split(".")[1]
-        current_var_index = current_var.split(".")[-1]
+        current_var_index = current_var.split(".")[4]
         if "field" in current_var_kind:
             current_var_kind = "this"
         elif "var" in current_var_kind:
@@ -340,7 +349,7 @@ class CompilationEngine:
                 if identifier_parts[1] == "var":
                     identifier_parts[1] = "local"
 
-                self.writer.write_push(identifier_parts[1], identifier_parts[-1])
+                self.writer.write_push(identifier_parts[1], identifier_parts[3])
                 self.advance_token()
         else:
             raise Exception("Incorrect syntax for term.")
@@ -369,14 +378,19 @@ class CompilationEngine:
 
     
     def compile_subroutine_call(self, token):
+        total_arguments = 0
         if token == "(":
             self.advance_token()
             self.verify_token("(")
             self.compile_expression_list()
             self.verify_token(")")
         elif token == ".":
-            # Class
-            class_token = self.tokenizer.token()
+            # Class/Variable name
+            name_token = self.tokenizer.token()
+            identifier_parts = self.tokenizer.token_type().split(".")
+            if len(identifier_parts) > 5: # Includes type
+                name_token = identifier_parts[5]
+                total_arguments += 1
             self.advance_token()
             # . symbol
             self.verify_token(".")
@@ -386,10 +400,10 @@ class CompilationEngine:
             # ( symbol
             self.verify_token("(")
             # Expression list
-            total_arguments = self.compile_expression_list()
+            total_arguments += self.compile_expression_list()
             # ) symbol
             self.verify_token(")")
-            self.writer.write_call("{}.{}".format(class_token, subroutine_name), total_arguments)
+            self.writer.write_call("{}.{}".format(name_token, subroutine_name), total_arguments)
         else:
             raise Exception("Incorrect syntax for subroutine call.")
 
