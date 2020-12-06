@@ -1,14 +1,22 @@
 from VMWriter import VMWriter
+from ClassRecord import ClassRecord
 
 class CompilationEngine:
     def __init__(self, input, output):
+        # Initialize
         self.tokenizer = input
         self.writer = VMWriter(output)
         self.class_name = None
         self.label_count = 1
         self.negative_term = False
+        self.is_constructor = False
+        self.is_method = False
+
+        # Traverse tokenizer
         while self.tokenizer.hasMoreTokens():
             self.compile_class()
+
+        # Close output file
         self.writer.close()
 
     def verify_token(self, string):
@@ -86,20 +94,16 @@ class CompilationEngine:
             return False
 
     def compile_subroutine(self):
-        # Check if subroutine type is constructor
-        is_constructor = False
-
         # Subroutine type
         current_token = self.tokenizer.token()
         if current_token == "constructor":
             total_fields = self.tokenizer.token_type().split(".")[1]
-            is_constructor = True
+            self.is_constructor = True
             self.advance_token()
         elif current_token == "function":
             self.advance_token()
         elif current_token == "method":
-            self.writer.write_push("argument", 0)
-            self.writer.write_pop("pointer", 0)
+            self.is_method = True
             self.advance_token()
         else:
             raise Exception("Incorrect syntax for subroutine declaration.")
@@ -131,9 +135,13 @@ class CompilationEngine:
             total_vars += self.compile_var_dec()
 
         self.writer.write_function("{}.{}".format(self.class_name, subroutine_name), total_vars)
-        if is_constructor:
+        if self.is_constructor:
             self.allocate_memory(total_fields)
-            
+        elif self.is_method:
+            self.writer.write_push("argument", 0)
+            self.writer.write_pop("pointer", 0)
+            self.is_method = False
+
         # Subroutine statements
         self.compile_statements(is_void)
         # } symbol
@@ -194,23 +202,36 @@ class CompilationEngine:
                 raise Exception("Incorrect syntax for statement.")
 
     def compile_do(self):
+        # Verify in a do statement
         self.verify_token("do")
         
+        # Peek at next token
         self.tokenizer.advance()
         next_token = self.tokenizer.token()
         self.tokenizer.reverse()
 
+        # Translate segments
         current_token_type = self.tokenizer.token_type().split(".")
         current_segment = current_token_type[1]
         if current_segment == "var":
             current_segment = "local"
         if current_segment == "field":
             current_segment = "this"
+        if current_segment == "subroutine":
+            current_segment = "pointer"
+        
+        # Push onto the stack
         current_index = current_token_type[4]
-        self.writer.write_push(current_segment, current_index)
+        if not ClassRecord.is_os(self.tokenizer.token()): 
+            self.writer.write_push(current_segment, current_index)
 
+        # Make subroutine call
         self.compile_subroutine_call(next_token)
+
+        # Verify end of statement
         self.verify_token(";")
+        
+        # Pop return value off stack
         self.writer.write_pop("temp", 0)
 
     def compile_let(self):
@@ -258,13 +279,22 @@ class CompilationEngine:
 
     def compile_return(self, is_void):
         self.verify_token("return")
+
+        # Check if return statement is expressionless
         if self.tokenizer.token() == ";":
             self.verify_token(";")
             if is_void:
                 self.writer.write_push("constant", 0)
+            if self.is_constructor:
+            #     self.writer.write_push("pointer", 0)
+                self.is_constructor = False
             self.writer.write_return()
+        # Compile expression in return statement
         else:
             self.compile_expression()
+            if self.is_constructor:
+            #     self.writer.write_push("pointer", 0)
+                self.is_constructor = False
             self.writer.write_return()
             self.advance_token()
 
@@ -284,16 +314,16 @@ class CompilationEngine:
         self.compile_statements()
         self.verify_token("}")
 
-        self.writer.write_goto(label_three)
-        self.writer.write_label(label_two)
-
         if self.tokenizer.token() == "else":
+            self.writer.write_goto(label_three)
+            self.writer.write_label(label_two)
             self.verify_token("else")
             self.verify_token("{")
             self.compile_statements()
             self.verify_token("}")
-        
-        self.writer.write_label(label_three)
+            self.writer.write_label(label_three)
+        else:
+            self.writer.write_label(label_two) 
 
     def create_label(self):
         label = "L{}".format(self.label_count)
@@ -319,7 +349,10 @@ class CompilationEngine:
                 self.writer.write_artihmetic("neg")
             self.negative_term = False
             self.advance_token()
-        elif current_token_type == "stringConstant" or current_token in keyword_constants: 
+        elif current_token_type == "stringConstant": 
+            self.advance_token()
+        elif current_token in keyword_constants:
+            self.writer.write_push("pointer", 0)
             self.advance_token()
         elif current_token == "true":
             self.writer.write_push("constant", 1)
@@ -362,8 +395,10 @@ class CompilationEngine:
                 identifier_parts = self.tokenizer.token_type().split(".")
                 if identifier_parts[1] == "var":
                     identifier_parts[1] = "local"
+                if identifier_parts[1] == "field":
+                    identifier_parts[1] = "this"
 
-                self.writer.write_push(identifier_parts[1], identifier_parts[3])
+                self.writer.write_push(identifier_parts[1], identifier_parts[4])
                 self.advance_token()
         else:
             raise Exception("Incorrect syntax for term.")
@@ -392,15 +427,17 @@ class CompilationEngine:
 
     
     def compile_subroutine_call(self, token):
+        # Class/Variable name
+        name_token = self.tokenizer.token()
         total_arguments = 0
         if token == "(":
             self.advance_token()
             self.verify_token("(")
-            self.compile_expression_list()
+            total_arguments += self.compile_expression_list()
             self.verify_token(")")
+            self.writer.write_call("{}.{}".format(self.class_name, name_token), total_arguments + 1)
         elif token == ".":
-            # Class/Variable name
-            name_token = self.tokenizer.token()
+            # Check if type exists
             identifier_parts = self.tokenizer.token_type().split(".")
             if len(identifier_parts) > 5: # Includes type
                 name_token = identifier_parts[5]
