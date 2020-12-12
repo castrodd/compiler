@@ -365,7 +365,19 @@ class CompilationEngine:
                 self.writer.write_artihmetic("neg")
             self.negative_term = False
             self.advance_token()
-        elif current_token_type == "stringConstant": 
+        elif current_token_type == "stringConstant":
+            # Get length of string (excluse quotation marks)
+            string_length = len(current_token) - 2
+            self.writer.write_push("constant", string_length) 
+            # Construct new string
+            self.writer.write_call("String.new", 1)
+            # Build new string
+            for letter in current_token:
+                unicode_code = ord(letter)
+                # Excluse quotation marks
+                if unicode_code != 34:
+                    self.writer.write_push("constant", unicode_code)
+                    self.writer.write_call("String.appendChar", 2)
             self.advance_token()
         elif current_token in keyword_constants:
             self.writer.write_push("pointer", 0)
