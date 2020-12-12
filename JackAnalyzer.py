@@ -8,7 +8,8 @@ from ClassRecord import ClassRecord
 def create_output_file(filename):
         currentFileName = filename.partition(".")[0]
         outputFileName = currentFileName + ".vm"
-        print("OUTPUT: ", outputFileName)
+        print("OUTPUT: {}\n".format(outputFileName))
+        print("")
         outputFile = open(outputFileName, 'a+')
         return outputFile
 
@@ -36,15 +37,24 @@ def strip_file_name(name):
     return name.partition(".")[0]
 
 def main():
-    file_names = get_list_of_files()
+    unprocessed_file_names = get_list_of_files()
+    processed_file_names = list()
     class_record = ClassRecord()
-    for file in file_names:
+
+    for file in unprocessed_file_names:
+        class_name = strip_file_name(file)
+        print("ADDING {} TO LIST OF CLASSES...\n".format(class_name))
+        class_record.add_name(class_name)
+        processed_file_names.append(file)
+
+    for file in processed_file_names:
+        print("COMPILING...")
         print("INPUT: ", file)
         output_file = create_output_file(file)
-        class_record.add_name(strip_file_name(file))
         tokenizer = JackTokenizer(file, class_record)
         CompilationEngine(tokenizer, output_file)
-    print("Compiler finished.")
+
+    print("Compilation Finished!\n")
 
 if __name__ == "__main__":
     main()
