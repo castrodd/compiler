@@ -235,8 +235,12 @@ class CompilationEngine:
         self.writer.write_pop("temp", 0)
 
     def compile_let(self):
+        contains_array = False
+
+        # Let keyword
         self.verify_token("let")
 
+        # Variable name
         current_var = self.tokenizer.token_type()
         current_var_kind = current_var.split(".")[1]
         current_var_index = current_var.split(".")[4]
@@ -247,15 +251,27 @@ class CompilationEngine:
         
         self.advance_token()
         
+        # Check for array
         if self.tokenizer.token() == "[":
+            contains_array = True
+            self.writer.write_push(current_var_kind, current_var_index)
+            current_var_kind = "that"
+            current_var_index = 0
+
             self.verify_token("[")
             self.compile_expression()
             self.verify_token("]")
+
+            self.writer.write_artihmetic("add")
         
         self.verify_token("=")
         self.compile_expression()
         self.verify_token(";")
 
+        if contains_array:
+            self.writer.write_pop("temp", 0)
+            self.writer.write_pop("pointer", 1)
+            self.writer.write_push("temp", 0)
         self.writer.write_pop(current_var_kind, current_var_index)
 
     def compile_while(self):
@@ -381,17 +397,7 @@ class CompilationEngine:
             self.compile_term()
 
         elif "identifier" in current_token_type:
-            self.tokenizer.advance()
-            next_token = self.tokenizer.token()
-            self.tokenizer.reverse()
-            if next_token == "[":
-                self.advance_token()
-                self.verify_token("[")
-                self.compile_expression()
-                self.verify_token("]")
-            elif next_token == "(" or next_token == ".":
-                self.compile_subroutine_call(next_token)
-            else:
+            def assign_and_push():
                 identifier_parts = self.tokenizer.token_type().split(".")
                 if identifier_parts[1] == "var":
                     identifier_parts[1] = "local"
@@ -399,6 +405,25 @@ class CompilationEngine:
                     identifier_parts[1] = "this"
 
                 self.writer.write_push(identifier_parts[1], identifier_parts[4])
+
+            self.tokenizer.advance()
+            next_token = self.tokenizer.token()
+            self.tokenizer.reverse()
+            if next_token == "[":
+                assign_and_push()
+                self.advance_token()
+
+                self.verify_token("[")
+                self.compile_expression()
+                self.verify_token("]")
+
+                self.writer.write_artihmetic("add")
+                self.writer.write_pop("pointer", 1)
+                self.writer.write_push("that", 0)
+            elif next_token == "(" or next_token == ".":
+                self.compile_subroutine_call(next_token)
+            else:
+                assign_and_push()
                 self.advance_token()
         else:
             raise Exception("Incorrect syntax for term.")
