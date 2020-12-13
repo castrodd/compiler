@@ -315,14 +315,12 @@ class CompilationEngine:
             if is_void:
                 self.writer.write_push("constant", 0)
             if self.is_constructor:
-            #     self.writer.write_push("pointer", 0)
                 self.is_constructor = False
             self.writer.write_return()
         # Compile expression in return statement
         else:
             self.compile_expression()
             if self.is_constructor:
-            #     self.writer.write_push("pointer", 0)
                 self.is_constructor = False
             self.writer.write_return()
             self.advance_token()
@@ -497,8 +495,7 @@ class CompilationEngine:
             if len(identifier_parts) > 5: # Includes type
                 name_token = identifier_parts[5]
                 total_arguments += 1
-                # if identifier_parts[1] == "field" and self.is_method:
-                #     self.writer.write_push("this", identifier_parts[4])
+               
             self.advance_token()
             # . symbol
             self.verify_token(".")

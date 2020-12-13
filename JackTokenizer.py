@@ -16,8 +16,6 @@ class JackTokenizer:
         self.symbol_table = SymbolTable()
         self.tokenize_stream(filename)
         self.add_extended_identifiers()
-        # for t in self.tokens:
-        #     print(t.get_token(), t.get_token_type())
         self.current_index = 0
 
     def tokenize_stream(self, file):
@@ -49,7 +47,7 @@ class JackTokenizer:
             elif char == "/" and index > 0 and lines[index-1] == "*":
                 multiline_comment = False
             elif not multiline_comment:
-                if char in self.symbols:
+                if char in self.symbols and not string_const:
                     if current_stream != "":
                         raw_tokens.append(current_stream)
                     raw_tokens.append(char)
