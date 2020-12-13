@@ -2,10 +2,11 @@ from VMWriter import VMWriter
 from ClassRecord import ClassRecord
 
 class CompilationEngine:
-    def __init__(self, input, output):
+    def __init__(self, input, output, class_record):
         # Initialize
         self.tokenizer = input
         self.writer = VMWriter(output)
+        self.class_record = class_record
         self.class_name = None
         self.label_count = 1
         self.negative_term = False
@@ -140,12 +141,12 @@ class CompilationEngine:
         elif self.is_method:
             self.writer.write_push("argument", 0)
             self.writer.write_pop("pointer", 0)
-            self.is_method = False
 
         # Subroutine statements
         self.compile_statements(is_void)
         # } symbol
         self.verify_token("}")
+        self.is_method = False
     
     def allocate_memory(self, total_fields):
         self.writer.write_push("constant", total_fields)
@@ -222,7 +223,7 @@ class CompilationEngine:
         
         # Push onto the stack
         current_index = current_token_type[4]
-        if not ClassRecord.is_os(self.tokenizer.token()): 
+        if not self.class_record.exists(self.tokenizer.token()): 
             self.writer.write_push(current_segment, current_index)
 
         # Make subroutine call
@@ -265,6 +266,18 @@ class CompilationEngine:
             self.writer.write_artihmetic("add")
         
         self.verify_token("=")
+
+        # Check for method call
+        current_token_type = self.tokenizer.token_type().split(".")
+        if len(current_token_type) > 4:
+            current_index = current_token_type[4]
+            current_segment = current_token_type[1]
+            self.tokenizer.advance()
+            next_token = self.tokenizer.token()
+            self.tokenizer.reverse()
+            if current_segment == "field" and self.is_method and next_token == ".": 
+                self.writer.write_push("this", current_index)
+
         self.compile_expression()
         self.verify_token(";")
 
@@ -402,7 +415,7 @@ class CompilationEngine:
             previous_token = self.tokenizer.token()
             self.advance_token()
 
-            if previous_token == ",":
+            if previous_token in [",", "(", "="]:
                 self.negative_term = True
             
             self.advance_token()
@@ -421,6 +434,7 @@ class CompilationEngine:
             self.tokenizer.advance()
             next_token = self.tokenizer.token()
             self.tokenizer.reverse()
+
             if next_token == "[":
                 assign_and_push()
                 self.advance_token()
@@ -461,6 +475,10 @@ class CompilationEngine:
             self.writer.write_artihmetic("not")
         elif op_symbol == "*":
             self.writer.write_call("Math.multiply", 2)
+        elif op_symbol == "/":
+            self.writer.write_call("Math.divide", 2)
+        else:
+            raise Exception("Operation {} not recognized.".format(op_symbol))
 
     
     def compile_subroutine_call(self, token):
@@ -479,6 +497,8 @@ class CompilationEngine:
             if len(identifier_parts) > 5: # Includes type
                 name_token = identifier_parts[5]
                 total_arguments += 1
+                # if identifier_parts[1] == "field" and self.is_method:
+                #     self.writer.write_push("this", identifier_parts[4])
             self.advance_token()
             # . symbol
             self.verify_token(".")

@@ -52,7 +52,7 @@ def main():
         print("INPUT: ", file)
         output_file = create_output_file(file)
         tokenizer = JackTokenizer(file, class_record)
-        CompilationEngine(tokenizer, output_file)
+        CompilationEngine(tokenizer, output_file, class_record)
 
     print("Compilation Finished!\n")
 
