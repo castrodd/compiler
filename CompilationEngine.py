@@ -19,16 +19,22 @@ class CompilationEngine:
 
         # Close output file
         self.writer.close()
+    
+    def token(self):
+        return self.tokenizer.token()
+
+    def type(self):
+        return self.tokenizer.token_type()
 
     def verify_token(self, string):
-        if self.tokenizer.token() != string:
-            raise Exception("Expected {}; received {}".format(string, self.tokenizer.token()))
+        if self.token() != string:
+            raise Exception("Expected {}; received {}".format(string, self.token()))
         else:
             self.tokenizer.advance()
 
     def advance_token(self):
-        current_token = self.tokenizer.token()
-        current_token_type = self.tokenizer.token_type()
+        current_token = self.token()
+        current_token_type = self.type()
         if current_token_type == "stringConstant":
             current_token = current_token[1:-1] # Strip quotation marks
         if current_token == "<":
@@ -46,22 +52,22 @@ class CompilationEngine:
         # Class keyword
         self.verify_token("class")
         # Class name
-        self.class_name = self.tokenizer.token()
+        self.class_name = self.token()
         self.advance_token()
         # { symbol
         self.verify_token("{")
         # Class variable declarations
-        while self.tokenizer.token() in ["static", "field"]:
+        while self.token() in ["static", "field"]:
             self.compile_class_var_dec()
         # Class subroutines
-        while self.tokenizer.token() in ["constructor", "function", "method"]:
+        while self.token() in ["constructor", "function", "method"]:
             self.compile_subroutine()
         # } symbol
         self.verify_token("}")
 
     def compile_class_var_dec(self):
         # Class variable kind
-        if self.tokenizer.token() == "static" or self.tokenizer.token() == "field":
+        if self.token() == "static" or self.token() == "field":
             self.advance_token()
         else:
             raise Exception("Incorrect syntax for class variable declaration.")
@@ -70,35 +76,35 @@ class CompilationEngine:
         # Class variable name
         self.advance_token()
         # Handle list of variables
-        while self.tokenizer.token() == ",":
+        while self.token() == ",":
             self.verify_token(",")
             self.advance_token()
         # ; symbol
         self.verify_token(";")
 
     def validate_type(self):
-        current_token = self.tokenizer.token()
+        current_token = self.token()
         if current_token == "int" or current_token == "char" or current_token == "boolean":
             self.advance_token()
-        elif "identifier" in self.tokenizer.token_type():
+        elif "identifier" in self.type():
             self.advance_token()
         else:
             raise Exception("Incorrect syntax for type.")
 
     def is_type(self):
-        current_token = self.tokenizer.token()
+        current_token = self.token()
         if current_token == "int" or current_token == "char" or current_token == "boolean":
             return True
-        elif "identifier" in self.tokenizer.token_type():
+        elif "identifier" in self.type():
             return True
         else:
             return False
 
     def compile_subroutine(self):
         # Subroutine type
-        current_token = self.tokenizer.token()
+        current_token = self.token()
         if current_token == "constructor":
-            total_fields = self.tokenizer.token_type().split(".")[1]
+            total_fields = self.type().split(".")[1]
             self.is_constructor = True
             self.advance_token()
         elif current_token == "function":
@@ -110,7 +116,7 @@ class CompilationEngine:
             raise Exception("Incorrect syntax for subroutine declaration.")
         
         # Return type
-        if self.tokenizer.token() == "void":
+        if self.token() == "void":
             is_void = True
             self.advance_token()
         else:
@@ -118,7 +124,7 @@ class CompilationEngine:
             self.validate_type()
 
         # Subroutine name
-        subroutine_name = self.tokenizer.token()
+        subroutine_name = self.token()
         self.advance_token()
         # ( symbol
         self.verify_token("(")
@@ -132,7 +138,7 @@ class CompilationEngine:
         self.verify_token("{")
         # Subroutine variable declarations
         total_vars = 0
-        while self.tokenizer.token() == "var":
+        while self.token() == "var":
             total_vars += self.compile_var_dec()
 
         self.writer.write_function("{}.{}".format(self.class_name, subroutine_name), total_vars)
@@ -160,7 +166,7 @@ class CompilationEngine:
             # Variable name
             self.advance_token()
             # Further parameters
-            while self.tokenizer.token() == ",":
+            while self.token() == ",":
                 self.verify_token(",")
                 self.validate_type()
                 self.advance_token()
@@ -174,7 +180,7 @@ class CompilationEngine:
         self.advance_token()
         total_vars += 1
 
-        while self.tokenizer.token() == ",":
+        while self.token() == ",":
             self.verify_token(",")
             self.advance_token()
             total_vars += 1
@@ -184,8 +190,8 @@ class CompilationEngine:
 
     def compile_statements(self, *args):
         # Statement keyword
-        while self.tokenizer.token() in ["let", "if", "while", "do", "return"]:
-            token = self.tokenizer.token()
+        while self.token() in ["let", "if", "while", "do", "return"]:
+            token = self.token()
             if token == "let":
                 self.compile_let()
             elif token == "if":
@@ -208,11 +214,11 @@ class CompilationEngine:
         
         # Peek at next token
         self.tokenizer.advance()
-        next_token = self.tokenizer.token()
+        next_token = self.token()
         self.tokenizer.reverse()
 
         # Translate segments
-        current_token_type = self.tokenizer.token_type().split(".")
+        current_token_type = self.type().split(".")
         current_segment = current_token_type[1]
         if current_segment == "var":
             current_segment = "local"
@@ -223,7 +229,7 @@ class CompilationEngine:
         
         # Push onto the stack
         current_index = current_token_type[4]
-        if not self.class_record.exists(self.tokenizer.token()): 
+        if not self.class_record.exists(self.token()): 
             self.writer.write_push(current_segment, current_index)
 
         # Make subroutine call
@@ -242,7 +248,7 @@ class CompilationEngine:
         self.verify_token("let")
 
         # Variable name
-        current_var = self.tokenizer.token_type()
+        current_var = self.type()
         current_var_kind = current_var.split(".")[1]
         current_var_index = current_var.split(".")[4]
         if "field" in current_var_kind:
@@ -253,7 +259,7 @@ class CompilationEngine:
         self.advance_token()
         
         # Check for array
-        if self.tokenizer.token() == "[":
+        if self.token() == "[":
             contains_array = True
             self.writer.write_push(current_var_kind, current_var_index)
             current_var_kind = "that"
@@ -268,12 +274,12 @@ class CompilationEngine:
         self.verify_token("=")
 
         # Check for method call
-        current_token_type = self.tokenizer.token_type().split(".")
+        current_token_type = self.type().split(".")
         if len(current_token_type) > 4:
             current_index = current_token_type[4]
             current_segment = current_token_type[1]
             self.tokenizer.advance()
-            next_token = self.tokenizer.token()
+            next_token = self.token()
             self.tokenizer.reverse()
             if current_segment == "field" and self.is_method and next_token == ".": 
                 self.writer.write_push("this", current_index)
@@ -310,7 +316,7 @@ class CompilationEngine:
         self.verify_token("return")
 
         # Check if return statement is expressionless
-        if self.tokenizer.token() == ";":
+        if self.token() == ";":
             self.verify_token(";")
             if is_void:
                 self.writer.write_push("constant", 0)
@@ -341,7 +347,7 @@ class CompilationEngine:
         self.compile_statements()
         self.verify_token("}")
 
-        if self.tokenizer.token() == "else":
+        if self.token() == "else":
             self.writer.write_goto(label_three)
             self.writer.write_label(label_two)
             self.verify_token("else")
@@ -360,14 +366,14 @@ class CompilationEngine:
     def compile_expression(self):
         self.compile_term()
         while self.is_op():
-            current_op = self.tokenizer.token()
+            current_op = self.token()
             self.advance_token()
             self.compile_term()
             self.write_op(current_op)
 
     def compile_term(self):
-        current_token = self.tokenizer.token()
-        current_token_type = self.tokenizer.token_type()
+        current_token = self.token()
+        current_token_type = self.type()
         keyword_constants = ["this"]
         
         if current_token_type == "integerConstant":
@@ -410,7 +416,7 @@ class CompilationEngine:
             self.writer.write_artihmetic("not")
         elif current_token == "-":
             self.reverse_token()
-            previous_token = self.tokenizer.token()
+            previous_token = self.token()
             self.advance_token()
 
             if previous_token in [",", "(", "="]:
@@ -421,7 +427,7 @@ class CompilationEngine:
 
         elif "identifier" in current_token_type:
             def assign_and_push():
-                identifier_parts = self.tokenizer.token_type().split(".")
+                identifier_parts = self.type().split(".")
                 if identifier_parts[1] == "var":
                     identifier_parts[1] = "local"
                 if identifier_parts[1] == "field":
@@ -430,7 +436,7 @@ class CompilationEngine:
                 self.writer.write_push(identifier_parts[1], identifier_parts[4])
 
             self.tokenizer.advance()
-            next_token = self.tokenizer.token()
+            next_token = self.token()
             self.tokenizer.reverse()
 
             if next_token == "[":
@@ -481,7 +487,7 @@ class CompilationEngine:
     
     def compile_subroutine_call(self, token):
         # Class/Variable name
-        name_token = self.tokenizer.token()
+        name_token = self.token()
         total_arguments = 0
         if token == "(":
             self.advance_token()
@@ -491,7 +497,7 @@ class CompilationEngine:
             self.writer.write_call("{}.{}".format(self.class_name, name_token), total_arguments + 1)
         elif token == ".":
             # Check if type exists
-            identifier_parts = self.tokenizer.token_type().split(".")
+            identifier_parts = self.type().split(".")
             if len(identifier_parts) > 5: # Includes type
                 name_token = identifier_parts[5]
                 total_arguments += 1
@@ -500,7 +506,7 @@ class CompilationEngine:
             # . symbol
             self.verify_token(".")
             # Subroutine name
-            subroutine_name = self.tokenizer.token()
+            subroutine_name = self.token()
             self.advance_token()
             # ( symbol
             self.verify_token("(")
@@ -514,7 +520,7 @@ class CompilationEngine:
 
     def is_op(self):
         ops = ["+", "-", "*", "/", "&", "|", "<", ">", "="]
-        if self.tokenizer.token() in ops:
+        if self.token() in ops:
             return True
         return False
 
@@ -523,7 +529,7 @@ class CompilationEngine:
         if self.is_expression():
             total_arguments += 1
             self.compile_expression()
-            while self.tokenizer.token() == ",":
+            while self.token() == ",":
                 self.advance_token()
                 total_arguments += 1
                 self.compile_expression()
@@ -531,14 +537,14 @@ class CompilationEngine:
     
     def is_expression(self):
         constants = ["integerConstant", "stringConstant"]
-        token_type = self.tokenizer.token_type()
+        token_type = self.type()
         symbols = ["(", "~", "-"]
-        if token_type in constants or "identifier" in token_type or "keyword" in token_type or self.tokenizer.token() in symbols:
+        if token_type in constants or "identifier" in token_type or "keyword" in token_type or self.token() in symbols:
             return True
         return False
 
     def get_previous_token(self):
         self.tokenizer.reverse()
-        previous_token = self.tokenizer.token()
+        previous_token = self.token()
         self.tokenizer.advance()
         return previous_token
