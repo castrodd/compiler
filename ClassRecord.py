@@ -9,7 +9,3 @@ class ClassRecord:
     
     def exists(self, name):
         return name in self.classes or name in ClassRecord.os
-    
-    @staticmethod
-    def is_os(name):
-        return name in ClassRecord.os
